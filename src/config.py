@@ -63,7 +63,7 @@ BREAKOUT_PRICE = .0001 # NOT USED YET 1/5/25
 SLEEP_AFTER_CLOSE = 600  # Prevent overtrading
 
 MAX_LOSS_GAIN_CHECK_HOURS = 12  # How far back to check for max loss/gain limits (in hours)
-SLEEP_BETWEEN_RUNS_MINUTES = 15  # How long to sleep between agent runs 🕒
+SLEEP_BETWEEN_RUNS_MINUTES = 1  # How long to sleep between agent runs 🕒
 
 
 # Max Loss/Gain Settings FOR RISK AGENT 1/5/25
@@ -108,7 +108,7 @@ ENABLE_STRATEGIES = True  # Set this to True to use strategies
 STRATEGY_MIN_CONFIDENCE = 0.7  # Minimum confidence to act on strategy signals
 
 # Sleep time between main agent runs
-SLEEP_BETWEEN_RUNS_MINUTES = 15  # How long to sleep between agent runs 🕒
+SLEEP_BETWEEN_RUNS_MINUTES = 1  # How long to sleep between agent runs 🕒
 
 # in our nice_funcs in token over view we look for minimum trades last hour
 MIN_TRADES_LAST_HOUR = 2

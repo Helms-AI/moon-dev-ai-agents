@@ -366,7 +366,8 @@ def get_data(symbol: str, days_back: float = 3, timeframe: str = "1H", add_indic
             hi = float(_norm_get(b, "high", default=0))
             lo = float(_norm_get(b, "low", default=0))
             cl = float(_norm_get(b, "close", default=0))
-            vol = float(_norm_get(b, "real_volume", "tick_volume", "volume", default=0))
+            # Prefer tick volume for MT5; fallback to real_volume/volume if unavailable
+            vol = float(_norm_get(b, "tick_volume", "TickVolume", "real_volume", "RealVolume", "volume", default=0))
             records.append({"Datetime (UTC)": ts, "Open": op, "High": hi, "Low": lo, "Close": cl, "Volume": vol})
 
         df = pd.DataFrame(records).sort_values("Datetime (UTC)")

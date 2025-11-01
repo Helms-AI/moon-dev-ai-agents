@@ -150,7 +150,7 @@ SAVE_OHLCV_DATA = False          # True = save data permanently, False = temp da
 
 # ⚡ TRADING EXECUTION SETTINGS
 slippage = 199                   # Slippage tolerance (199 = ~2%)
-SLEEP_BETWEEN_RUNS_MINUTES = 15  # Minutes between trading cycles
+SLEEP_BETWEEN_RUNS_MINUTES = 1  # Minutes between trading cycles
 
 # 🎯 TOKEN CONFIGURATION
 
