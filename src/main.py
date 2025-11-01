@@ -15,12 +15,7 @@ from config import *
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_root)
 
-# Import agents
-from src.agents.trading_agent import TradingAgent
-from src.agents.risk_agent import RiskAgent
-from src.agents.strategy_agent import StrategyAgent
-from src.agents.copybot_agent import CopyBotAgent
-from src.agents.sentiment_agent import SentimentAgent
+# Agent imports moved into run loop to avoid importing unused heavy deps
 
 # Load environment variables
 load_dotenv()
@@ -40,12 +35,28 @@ ACTIVE_AGENTS = {
 def run_agents():
     """Run all active agents in sequence"""
     try:
-        # Initialize active agents
-        trading_agent = TradingAgent() if ACTIVE_AGENTS['trading'] else None
-        risk_agent = RiskAgent() if ACTIVE_AGENTS['risk'] else None
-        strategy_agent = StrategyAgent() if ACTIVE_AGENTS['strategy'] else None
-        copybot_agent = CopyBotAgent() if ACTIVE_AGENTS['copybot'] else None
-        sentiment_agent = SentimentAgent() if ACTIVE_AGENTS['sentiment'] else None
+        # Initialize active agents (import lazily to avoid heavy deps when off)
+        trading_agent = None
+        risk_agent = None
+        strategy_agent = None
+        copybot_agent = None
+        sentiment_agent = None
+
+        if ACTIVE_AGENTS['trading']:
+            from src.agents.trading_agent import TradingAgent
+            trading_agent = TradingAgent()
+        if ACTIVE_AGENTS['risk']:
+            from src.agents.risk_agent import RiskAgent
+            risk_agent = RiskAgent()
+        if ACTIVE_AGENTS['strategy']:
+            from src.agents.strategy_agent import StrategyAgent
+            strategy_agent = StrategyAgent()
+        if ACTIVE_AGENTS['copybot']:
+            from src.agents.copybot_agent import CopyBotAgent
+            copybot_agent = CopyBotAgent()
+        if ACTIVE_AGENTS['sentiment']:
+            from src.agents.sentiment_agent import SentimentAgent
+            sentiment_agent = SentimentAgent()
 
         while True:
             try:

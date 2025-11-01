@@ -171,9 +171,10 @@ MONITORED_TOKENS = [
 # ⚠️ IMPORTANT: Only used when EXCHANGE = "ASTER" or "HYPERLIQUID"
 # Add symbols you want to trade (e.g., BTC, ETH, SOL, etc.)
 SYMBOLS = [
-    'BTC',      # Bitcoin
-    #'ETH',     # Ethereum
-    #'SOL',     # Solana
+    'XAUUSD',   # Gold (MT5 symbol)
+    #'BTC',     # Example: Bitcoin (for Aster/HL)
+    #'ETH',
+    #'SOL',
 ]
 
 # Example: To trade multiple tokens, uncomment the ones you want:
@@ -278,6 +279,16 @@ if project_root not in sys.path:
 # Local imports - trading_agent.py is now fully self-contained!
 # No config.py imports needed - all settings are at the top of this file (lines 55-111)
 
+# Allow environment override for exchange (uses .env if present)
+try:
+    from dotenv import load_dotenv as _load_dotenv_override
+    _load_dotenv_override()
+except Exception:
+    pass
+_env_exch = os.getenv("TRADING_AGENT_EXCHANGE") or os.getenv("EXCHANGE")
+if _env_exch:
+    EXCHANGE = _env_exch.upper()
+
 # Dynamic exchange imports based on EXCHANGE selection
 if EXCHANGE == "ASTER":
     from src import nice_funcs_aster as n
@@ -288,9 +299,12 @@ elif EXCHANGE == "HYPERLIQUID":
 elif EXCHANGE == "SOLANA":
     from src import nice_funcs as n
     cprint("🏦 Exchange: Solana (On-chain DEX)", "cyan", attrs=['bold'])
+elif EXCHANGE == "MT5":
+    from src import nice_funcs_mt5 as n
+    cprint("🏦 Exchange: MT5 (Metals/FX via Bridge)", "cyan", attrs=['bold'])
 else:
     cprint(f"❌ Unknown exchange: {EXCHANGE}", "red")
-    cprint("Available exchanges: ASTER, HYPERLIQUID, SOLANA", "yellow")
+    cprint("Available exchanges: ASTER, HYPERLIQUID, SOLANA, MT5", "yellow")
     sys.exit(1)
 
 from src.data.ohlcv_collector import collect_all_tokens
@@ -320,7 +334,7 @@ def monitor_position_pnl(token, check_interval=PNL_CHECK_INTERVAL):
 
         while True:
             # Get current position
-            if EXCHANGE in ["ASTER", "HYPERLIQUID"]:
+            if EXCHANGE in ["ASTER", "HYPERLIQUID", "MT5"]:
                 position = n.get_position(token)
             else:
                 position_usd = n.get_token_balance_usd(token)
@@ -333,8 +347,8 @@ def monitor_position_pnl(token, check_interval=PNL_CHECK_INTERVAL):
                 cprint(f"✅ No position found for {token}", "green")
                 return True
 
-            # For Aster/HyperLiquid, check P&L percentage
-            if EXCHANGE in ["ASTER", "HYPERLIQUID"]:
+            # For derivatives-style exchanges, check P&L percentage
+            if EXCHANGE in ["ASTER", "HYPERLIQUID", "MT5"]:
                 pnl_pct = position.get('pnl_percentage', 0)
                 pnl_usd = position.get('pnl', 0)
                 position_size = abs(position.get('position_amount', 0)) * position.get('mark_price', 0)
@@ -389,17 +403,21 @@ def get_account_balance():
         float: Account balance in USD
     """
     try:
-        if EXCHANGE in ["ASTER", "HYPERLIQUID"]:
-            # Get USD balance from futures exchange
+        if EXCHANGE in ["ASTER", "HYPERLIQUID", "MT5"]:
+            # Get USD balance from derivatives-style exchanges
             if EXCHANGE == "ASTER":
                 balance_dict = n.get_account_balance()  # Aster returns dict
-                balance = balance_dict.get('total_equity', 0)  # Use total equity for trading
+                balance = balance_dict.get('total_equity', 0)
                 cprint(f"💰 {EXCHANGE} Total Equity: ${balance:,.2f} USD", "cyan")
                 cprint(f"   Available: ${balance_dict.get('available', 0):,.2f} | Unrealized PnL: ${balance_dict.get('unrealized_pnl', 0):,.2f}", "white")
-            else:  # HYPERLIQUID
+            elif EXCHANGE == "HYPERLIQUID":
                 account = n._get_account_from_env()
-                balance = n.get_account_value(account)  # HyperLiquid USD balance
+                balance = n.get_account_value(account)
                 cprint(f"💰 {EXCHANGE} Account Balance: ${balance:,.2f} USD", "cyan")
+            else:  # MT5
+                bal = n.get_account_balance()  # adapter returns dict
+                balance = bal.get('equity', bal.get('balance', 0)) if isinstance(bal, dict) else float(bal or 0)
+                cprint(f"💰 MT5 Equity: ${balance:,.2f} USD", "cyan")
 
             return balance
         else:
@@ -1061,7 +1079,7 @@ Example format:
             
             # Collect OHLCV data for all tokens using this agent's config
             # Use SYMBOLS for Aster/HyperLiquid, MONITORED_TOKENS for Solana
-            if EXCHANGE in ["ASTER", "HYPERLIQUID"]:
+            if EXCHANGE in ["ASTER", "HYPERLIQUID", "MT5"]:
                 tokens_to_trade = SYMBOLS
                 cprint(f"🏦 Using {EXCHANGE} - Trading symbols: {SYMBOLS}", "yellow")
             else:
@@ -1158,7 +1176,7 @@ def main():
             has_position = False
             monitored_token = None
 
-            for token in SYMBOLS if EXCHANGE in ["ASTER", "HYPERLIQUID"] else MONITORED_TOKENS:
+            for token in SYMBOLS if EXCHANGE in ["ASTER", "HYPERLIQUID", "MT5"] else MONITORED_TOKENS:
                 if EXCHANGE in ["ASTER", "HYPERLIQUID"]:
                     position = n.get_position(token)
                     if position and position.get('position_amount', 0) != 0:

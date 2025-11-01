@@ -5,9 +5,19 @@ Built with love by Moon Dev 🚀
 """
 
 from src.config import *
-from src import nice_funcs as n
-from src import nice_funcs_hyperliquid as hl
-from src import nice_funcs_aster as aster
+# Solana adapter imported lazily to avoid optional deps
+# HyperLiquid adapter imported lazily
+# Aster adapter is optional; avoid hard-failing if not installed
+try:
+    from src import nice_funcs_aster as aster  # type: ignore
+except BaseException:
+    aster = None
+
+# MT5 adapter (metals/FX)
+try:
+    from src import nice_funcs_mt5 as mt5  # type: ignore
+except BaseException:
+    mt5 = None
 import pandas as pd
 from datetime import datetime
 import os
@@ -45,19 +55,27 @@ def collect_token_data(token, days_back=DAYSBACK_4_DATA, timeframe=DATA_TIMEFRAM
 
         # Route to appropriate data source based on exchange
         if exchange == "HYPERLIQUID":
+            from src import nice_funcs_hyperliquid as hl  # lazy import
             # Use HyperLiquid API
             cprint(f"🏦 Using HyperLiquid API for {token}", "cyan")
             data = hl.get_data(symbol=token, timeframe=hl_timeframe, bars=bars_needed, add_indicators=True)
         elif exchange == "ASTER":
+            from src import nice_funcs_hyperliquid as hl  # lazy import
             # Use HyperLiquid API for Aster symbols too (same symbols, same data)
             cprint(f"🏦 Using HyperLiquid API for {token} (Aster symbols)", "cyan")
             data = hl.get_data(symbol=token, timeframe=hl_timeframe, bars=bars_needed, add_indicators=True)
         elif exchange == "EXTENDED":
+            from src import nice_funcs_hyperliquid as hl  # lazy import
             # Use HyperLiquid API for Extended symbols (same data source)
             cprint(f"🏦 Using HyperLiquid API for {token} (Extended symbols)", "cyan")
             data = hl.get_data(symbol=token, timeframe=hl_timeframe, bars=bars_needed, add_indicators=True)
+        elif exchange == "MT5" and mt5 is not None:
+            cprint(f"🏦 Using MT5 API for {token}", "cyan")
+            # nice_funcs_mt5.get_data expects (symbol, days_back, timeframe)
+            data = mt5.get_data(symbol=token, days_back=days_back, timeframe=timeframe)
         else:
             # Default: Use Solana/Birdeye API
+            from src import nice_funcs as n  # lazy import to avoid pandas_ta unless needed
             cprint(f"🏦 Using Solana/Birdeye API for {token}", "cyan")
             data = n.get_data(token, days_back, timeframe)
 
