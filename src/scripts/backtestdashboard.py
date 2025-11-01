@@ -62,11 +62,16 @@ import json
 # 📊 Path to your backtest stats CSV file
 # This CSV is created by rbi_agent_pp_multi.py after running backtests
 # Default: src/data/rbi_pp_multi/backtest_stats.csv
-STATS_CSV = Path("/Users/md/Dropbox/dev/github/moon-dev-ai-agents-for-trading/src/data/rbi_pp_multi/backtest_stats.csv")
+# Determine base directories relative to this file
+SRC_DIR = Path(__file__).resolve().parents[1]  # .../src
 
 # 📁 Directory for static files (CSS, JS) and templates (HTML)
-# These files are located in: src/data/rbi_pp_multi/static and src/data/rbi_pp_multi/templates
-TEMPLATE_BASE_DIR = Path("/Users/md/Dropbox/dev/github/moon-dev-ai-agents-for-trading/src/data/rbi_pp_multi")
+# These files will live under: src/data/rbi_pp_multi/{templates,static}
+TEMPLATE_BASE_DIR = SRC_DIR / "data" / "rbi_pp_multi"
+TEMPLATE_BASE_DIR.mkdir(parents=True, exist_ok=True)
+
+# 📊 Path to your backtest stats CSV file
+STATS_CSV = TEMPLATE_BASE_DIR / "backtest_stats.csv"
 
 # 🗂️ Directory to store user-created folders
 # Folders allow you to organize and group your backtest results
@@ -81,19 +86,19 @@ DATA_DIR = TEMPLATE_BASE_DIR / "downloads"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # 📊 Test Data Sets Directory - Historical datasets for backtesting
-TEST_DATA_DIR = Path("/Users/md/Dropbox/dev/github/moon-dev-ai-agents-for-trading/src/data/private_data")
+TEST_DATA_DIR = TEMPLATE_BASE_DIR / "private_data"
 
 # TEST MODE for data portal - Set to True for fast testing with sample data
 TEST_MODE = True
 
-# 🎯 Polymarket CSV Paths
-POLYMARKET_SWEEPS_CSV = Path("/Users/md/Dropbox/dev/github/Polymarket-Trading-Bots/data/sweeps_database.csv")
-POLYMARKET_EXPIRING_CSV = Path("/Users/md/Dropbox/dev/github/Polymarket-Trading-Bots/data/expiring_markets.csv")
+# 🎯 Polymarket CSV Paths (stored locally under downloads/)
+POLYMARKET_SWEEPS_CSV = DATA_DIR / "sweeps_database.csv"
+POLYMARKET_EXPIRING_CSV = DATA_DIR / "expiring_markets.csv"
 
-# 🎯 Liquidation CSV Paths
-LIQUIDATIONS_MINI_CSV = Path("/Users/md/Dropbox/dev/github/Untitled/binance_trades_mini.csv")
-LIQUIDATIONS_BIG_CSV = Path("/Users/md/Dropbox/dev/github/Untitled/binance_trades.csv")
-LIQUIDATIONS_GRAND_CSV = Path("/Users/md/Dropbox/dev/github/Untitled/binance.csv")
+# 🎯 Liquidation CSV Paths (stored locally under downloads/)
+LIQUIDATIONS_MINI_CSV = DATA_DIR / "binance_trades_mini.csv"
+LIQUIDATIONS_BIG_CSV = DATA_DIR / "binance_trades.csv"
+LIQUIDATIONS_GRAND_CSV = DATA_DIR / "binance.csv"
 
 # ============================================================================
 # 🚀 FASTAPI APP INITIALIZATION
@@ -123,6 +128,13 @@ data_status = {
 # Mount static files and templates
 app.mount("/static", StaticFiles(directory=str(TEMPLATE_BASE_DIR / "static")), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATE_BASE_DIR / "templates"))
+
+# Include MT5 API routes
+try:
+    from scripts.backtest_api_mt5 import router as mt5_router
+    app.include_router(mt5_router)
+except Exception as _e:
+    logger.warning(f"MT5 API not loaded: {_e}")
 
 
 # 🌙 Moon Dev: Request models for folder operations
